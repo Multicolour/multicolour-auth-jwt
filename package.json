@@ -33,5 +33,10 @@
     "nodemon": "^1.7.1",
     "tap-spec": "^4.1.0",
     "tape": "^4.2.0"
+  },
+  "dependencies": {
+    "hapi-auth-jwt2": "^5.8.0",
+    "joi": "^8.0.5",
+    "jsonwebtoken": "^5.7.0"
   }
 }
