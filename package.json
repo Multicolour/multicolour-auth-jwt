@@ -1,6 +1,6 @@
 {
   "name": "multicolour-auth-jwt",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "JWT Auth plugin for Multicolour",
   "main": "index.js",
   "scripts": {
