@@ -5,13 +5,13 @@ const Joi = require("joi")
 class Multicolour_Auth_JWT {
   validate(multicolour, decoded, callback) {
     multicolour.get("database").get("models").multicolour_user
-      .findOne({ id: decoded.id })
+      .findOne({ id: decoded.id, email: decoded.email })
       .populateAll()
       .exec((err, user) => {
         if (err) {
           callback(err, false)
         }
-        else if (!user || user.id !== decoded.id) {
+        else if (!user) {
           callback(null, false)
         }
         else {
@@ -100,7 +100,7 @@ class Multicolour_Auth_JWT {
                   }
 
                   // Create the token.
-                  const token = jwt.sign({ id: user.id }, config.password, config.jwt_options)
+                  const token = jwt.sign({ id: user.id, email: user.email }, config.password, config.jwt_options)
 
                   // Create a session document.
                   models.session.create({
