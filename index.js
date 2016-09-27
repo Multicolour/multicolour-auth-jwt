@@ -1,6 +1,7 @@
 "use strict"
 
 const Joi = require("joi")
+const boom = require("boom")
 
 /**
  * Get the decorator assigned to an Accept header
@@ -103,18 +104,18 @@ class Multicolour_Auth_JWT {
             .exec((err, user) => {
               // Check for errors.
               if (err) {
-                get_decorator_for_apply_value(reply, method)(err, models.multicolour_user)
+                reply(boom.wrap(err))
               }
               // Check a user for that email exists and the passwords match.
               else if (!user) {
-                get_decorator_for_apply_value(reply, method)(new Error("Invalid login."), models.multicolour_user).code(403)
+                reply(boom.unauthorized("Invalid login."))
               }
               // We're good to create a session.
               else {
                 // Hash the password.
                 mc_utils.hash_password(request.payload.password, user.salt, hashed_password => {
                   if (user.password !== hashed_password) {
-                    return get_decorator_for_apply_value(reply, method)(new Error("Invalid login."), models.multicolour_user).code(403)
+                    return reply(boom.unauthorized("Invalid login."))
                   }
 
                   // Create the token.
@@ -132,10 +133,10 @@ class Multicolour_Auth_JWT {
                   }, (err, session) => {
                     // Check for errors.
                     if (err) {
-                      get_decorator_for_apply_value(reply, method)(err, models.session)
+                      reply(boom.unauthorized("Invalid login."))
                     }
                     else {
-                      get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
+                      get_decorator_for_apply_value(reply, method)(session, models.session)
                     }
                   })
                 })
