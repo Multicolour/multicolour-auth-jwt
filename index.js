@@ -20,6 +20,9 @@ function get_decorator_for_apply_value(reply_interface, accept_value) {
     reply_interface["application/json"].bind(reply_interface)
 }
 
+const ERROR_INVALID_USERNAME = 'Invalid login.';
+const ERROR_INVALID_PASSWORD = 'Invalid login.';
+
 class Multicolour_Auth_JWT {
   validate(multicolour, decoded, callback) {
     multicolour.get("database").get("models").multicolour_user
@@ -34,6 +37,61 @@ class Multicolour_Auth_JWT {
         }
         else {
           callback(null, true, user)
+        }
+      })
+  }
+
+  auth(multicolour, identifier, password, callback, identifier_field = 'email') {
+    //const method = request.headers.accept
+    const mc_utils = require("multicolour/lib/utils")
+    const models = multicolour.get("database").get("models")
+    const jwt = require("jsonwebtoken")
+
+    const config = multicolour.get("config").get("auth")
+
+    models
+      .multicolour_user.findOne({
+        [identifier_field]: identifier,
+        requires_password: false
+      })
+      .catch(err => {
+        callback(err);
+      })
+      .then(user => {
+        if (!user) {
+          return callback(new Error(ERROR_INVALID_USERNAME, 403));
+        }
+        // We're good to create a session.
+        else {
+          // Hash the password.
+          mc_utils.hash_password(password, user.salt, hashed_password => {
+            if (user.password !== hashed_password) {
+              return callback(new Error(ERROR_INVALID_USERNAME));
+            }
+
+            // Create the token.
+            const token = jwt.sign({
+              id: user.id,
+              email: user.email,
+              username: user.username
+            }, config.password, config.jwt_options)
+
+            // Create a session document.
+            models.session.create({
+              provider: "jwt",
+              user: user.id,
+              token
+            }, (err, session) => {
+              // Check for errors.
+              if (err) {
+                callback(err);
+              }
+              else {
+                multicolour.trigger('auth_session_created', session);
+                callback(null, session);
+              }
+            })
+          })
         }
       })
   }
@@ -62,6 +120,15 @@ class Multicolour_Auth_JWT {
       .request("header_validator")
         .set("authorization", joi.string().required())
 
+    generator.on('auth_login', args => {
+      const identifier_field = args.identifier_field || 'email';
+      const identifier = args[identifier_field];
+      const password = args.password;
+      const callback = args.callback ? args.callback : _ => {};
+
+      this.auth(host, identifier, password, callback, identifier_field);
+    })
+
     server.register(require("hapi-auth-jwt2"), err => {
       if (err) {
         throw err
@@ -81,7 +148,7 @@ class Multicolour_Auth_JWT {
 
     // Headers for the session endpoints.
     const headers = host.request("header_validator").get()
-    delete headers.authorization
+    delete headers.authorization;
 
     server.route({
       method: "POST",
@@ -89,58 +156,21 @@ class Multicolour_Auth_JWT {
       config: {
         auth: false,
         handler: (request, reply) => {
-          // Tools.
-          const method = request.headers.accept
-          const mc_utils = require("multicolour/lib/utils")
           const models = host.get("database").get("models")
-          const jwt = require("jsonwebtoken")
-
-          models
-            .multicolour_user.findOne({
-              email: request.payload.email.toString(),
-              requires_password: false
-            })
-            .exec((err, user) => {
-              // Check for errors.
+          const method = request.headers.accept;
+          const args = {
+            email: request.payload.email.toString(),
+            password: request.payload.email,
+            callback: (err, session) => {
               if (err) {
-                get_decorator_for_apply_value(reply, method)(err, models.multicolour_user)
+                return get_decorator_for_apply_value(reply, method)(err, models.multicolour_user);//.code(err.code || 500)
               }
-              // Check a user for that email exists and the passwords match.
-              else if (!user) {
-                get_decorator_for_apply_value(reply, method)(new Error("Invalid login."), models.multicolour_user).code(403)
-              }
-              // We're good to create a session.
-              else {
-                // Hash the password.
-                mc_utils.hash_password(request.payload.password, user.salt, hashed_password => {
-                  if (user.password !== hashed_password) {
-                    return get_decorator_for_apply_value(reply, method)(new Error("Invalid login."), models.multicolour_user).code(403)
-                  }
 
-                  // Create the token.
-                  const token = jwt.sign({
-                    id: user.id,
-                    email: user.email,
-                    username: user.username
-                  }, config.password, config.jwt_options)
+              get_decorator_for_apply_value(reply, method)(session, models.session);//.code(202)
+            }
+          }
 
-                  // Create a session document.
-                  models.session.create({
-                    provider: "jwt",
-                    user: user.id,
-                    token
-                  }, (err, session) => {
-                    // Check for errors.
-                    if (err) {
-                      get_decorator_for_apply_value(reply, method)(err, models.session)
-                    }
-                    else {
-                      get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
-                    }
-                  })
-                })
-              }
-            })
+          generator.trigger('auth_login', args);
         },
         validate: {
           headers: Joi.object(headers).unknown(true),
@@ -155,6 +185,7 @@ class Multicolour_Auth_JWT {
       }
     })
   }
+
 }
 
 module.exports = Multicolour_Auth_JWT
