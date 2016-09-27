@@ -2,10 +2,28 @@
 
 const Joi = require("joi")
 
+/**
+ * Get the decorator assigned to an Accept header
+ * value, if no negotiation available default
+ * application/json is returned from the interface.
+ * @param  {Object} reply_interface to return decorator on.
+ * @param  {String} accept_value to try and get a decorator for.
+ * @return {Function} decorator on the reply interface.
+ */
+function get_decorator_for_apply_value(reply_interface, accept_value) {
+  // Normalise the passed value.
+  const accept = accept_value ? accept_value.toString().toLowerCase() : "application/json"
+
+  // Return the function.
+  return reply_interface.hasOwnProperty(accept) ?
+    reply_interface[accept].bind(reply_interface) :
+    reply_interface["application/json"].bind(reply_interface)
+}
+
 class Multicolour_Auth_JWT {
   validate(multicolour, decoded, callback) {
     multicolour.get("database").get("models").multicolour_user
-      .findOne({ id: decoded.id, email: decoded.email })
+      .findOne({ id: decoded.id, email: decoded.email, username: decoded.username })
       .populateAll()
       .exec((err, user) => {
         if (err) {
@@ -85,22 +103,26 @@ class Multicolour_Auth_JWT {
             .exec((err, user) => {
               // Check for errors.
               if (err) {
-                reply[method](err, models.multicolour_user)
+                get_decorator_for_apply_value(reply, method)(err, models.multicolour_user)
               }
               // Check a user for that email exists and the passwords match.
               else if (!user) {
-                reply[method](new Error("Invalid login."), models.multicolour_user).code(403)
+                get_decorator_for_apply_value(reply, method)(new Error("Invalid login."), models.multicolour_user).code(403)
               }
               // We're good to create a session.
               else {
                 // Hash the password.
                 mc_utils.hash_password(request.payload.password, user.salt, hashed_password => {
                   if (user.password !== hashed_password) {
-                    return reply[method](new Error("Invalid login."), models.multicolour_user).code(403)
+                    return get_decorator_for_apply_value(reply, method)(new Error("Invalid login."), models.multicolour_user).code(403)
                   }
 
                   // Create the token.
-                  const token = jwt.sign({ id: user.id, email: user.email }, config.password, config.jwt_options)
+                  const token = jwt.sign({
+                    id: user.id,
+                    email: user.email,
+                    username: user.username
+                  }, config.password, config.jwt_options)
 
                   // Create a session document.
                   models.session.create({
@@ -110,10 +132,10 @@ class Multicolour_Auth_JWT {
                   }, (err, session) => {
                     // Check for errors.
                     if (err) {
-                      reply[method](err, models.session)
+                      get_decorator_for_apply_value(reply, method)(err, models.session)
                     }
                     else {
-                      reply[method](session, models.session).code(202)
+                      get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
                     }
                   })
                 })
