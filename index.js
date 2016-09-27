@@ -65,6 +65,7 @@ class Multicolour_Auth_JWT {
         else {
           // Hash the password.
           mc_utils.hash_password(password, user.salt, hashed_password => {
+
             if (user.password !== hashed_password) {
               return callback(new Error(ERROR_INVALID_USERNAME));
             }
@@ -136,8 +137,11 @@ class Multicolour_Auth_JWT {
 
       server.auth.strategy("jwt", "jwt", {
         key: config.password,
-        validateFunc: (decoded, request, callback) =>
-          this.validate(host, decoded, callback),
+        validateFunc: (decoded, request, callback) => {
+          // TODO: Redirect when not requesting JSON
+
+          this.validate(host, decoded, callback)
+        },
         verifyOptions: {
           algorithms: config.algorithms || [ "HS256" ]
         }
