@@ -1,7 +1,7 @@
 {
-  "name": "multicolour-auth-jwt",
+  "name": "multicolour-hapi-jwt",
   "version": "0.1.0",
-  "description": "JWT Auth plugin for Multicolour",
+  "description": "JWT Auth plugin for HapiJS Multicolour",
   "main": "index.js",
   "scripts": {
     "test": "tape tests/*.js | tap-spec",
