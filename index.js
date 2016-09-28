@@ -167,10 +167,10 @@ class Multicolour_Auth_JWT {
             password: request.payload.email,
             callback: (err, session) => {
               if (err) {
-                return get_decorator_for_apply_value(reply, method)(err, models.multicolour_user);//.code(err.code || 500)
+                return get_decorator_for_apply_value(reply, method)(err, models.multicolour_user).code(err.code || 500)
               }
 
-              get_decorator_for_apply_value(reply, method)(session, models.session);//.code(202)
+              get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
             }
           }
 
