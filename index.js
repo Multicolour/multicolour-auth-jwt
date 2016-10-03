@@ -67,10 +67,6 @@ class Multicolour_Auth_JWT {
 
           // Hash the password.
           mc_utils.hash_password(password, user.salt, hashed_password => {
-// console.log(user.salt);
-// console.log(password);
-// console.log(hashed_password);
-// console.log(user.password);
 
             if (user.password !== hashed_password) {
               return callback(new Error(ERROR_INVALID_USERNAME))
@@ -133,9 +129,6 @@ class Multicolour_Auth_JWT {
       const identifier = args[identifier_field]
       const password = args.password
       const callback = args.callback ? args.callback : _ => {}
-
-console.log(args, password);
-
 
       this.auth(identifier, password, callback, identifier_field)
     })
