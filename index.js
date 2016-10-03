@@ -20,11 +20,13 @@ function get_decorator_for_apply_value(reply_interface, accept_value) {
     reply_interface["application/json"].bind(reply_interface)
 }
 
-const ERROR_INVALID_USERNAME = 'Invalid login.';
-const ERROR_INVALID_PASSWORD = 'Invalid login.';
+const ERROR_INVALID_USERNAME = "Invalid login."
+const ERROR_INVALID_PASSWORD = "Invalid login."
 
 class Multicolour_Auth_JWT {
-  validate(multicolour, decoded, callback) {
+  validate(decoded, callback) {
+    const multicolour = this.request("host")
+
     multicolour.get("database").get("models").multicolour_user
       .findOne({ id: decoded.id, email: decoded.email, username: decoded.username })
       .populateAll()
@@ -41,7 +43,9 @@ class Multicolour_Auth_JWT {
       })
   }
 
-  auth(multicolour, identifier, password, callback, identifier_field = 'email') {
+  auth(identifier, password, callback, identifier_field = "email") {
+    const multicolour = this.request("host")
+
     //const method = request.headers.accept
     const mc_utils = require("multicolour/lib/utils")
     const models = multicolour.get("database").get("models")
@@ -54,20 +58,16 @@ class Multicolour_Auth_JWT {
         [identifier_field]: identifier,
         requires_password: false
       })
-      .catch(err => {
-        callback(err);
-      })
       .then(user => {
         if (!user) {
-          return callback(new Error(ERROR_INVALID_USERNAME, 403));
+          return callback(new Error(ERROR_INVALID_USERNAME, 403))
         }
         // We're good to create a session.
         else {
           // Hash the password.
           mc_utils.hash_password(password, user.salt, hashed_password => {
-
             if (user.password !== hashed_password) {
-              return callback(new Error(ERROR_INVALID_USERNAME));
+              return callback(new Error(ERROR_INVALID_USERNAME))
             }
 
             // Create the token.
@@ -85,16 +85,17 @@ class Multicolour_Auth_JWT {
             }, (err, session) => {
               // Check for errors.
               if (err) {
-                callback(err);
+                callback(err)
               }
               else {
-                multicolour.trigger('auth_session_created', session);
-                callback(null, session);
+                multicolour.trigger("auth_session_created", session)
+                callback(null, session)
               }
             })
           })
         }
       })
+      .catch(callback)
   }
 
   register(generator) {
@@ -121,13 +122,13 @@ class Multicolour_Auth_JWT {
       .request("header_validator")
         .set("authorization", joi.string().required())
 
-    generator.on('auth_login', args => {
-      const identifier_field = args.identifier_field || 'email';
-      const identifier = args[identifier_field];
-      const password = args.password;
-      const callback = args.callback ? args.callback : _ => {};
+    generator.on("auth_login", args => {
+      const identifier_field = args.identifier_field || "email"
+      const identifier = args[identifier_field]
+      const password = args.password
+      const callback = args.callback ? args.callback : _ => {}
 
-      this.auth(host, identifier, password, callback, identifier_field);
+      this.auth(identifier, password, callback, identifier_field)
     })
 
     server.register(require("hapi-auth-jwt2"), err => {
@@ -140,7 +141,7 @@ class Multicolour_Auth_JWT {
         validateFunc: (decoded, request, callback) => {
           // TODO: Redirect when not requesting JSON
 
-          this.validate(host, decoded, callback)
+          this.validate(decoded, callback)
         },
         verifyOptions: {
           algorithms: config.algorithms || [ "HS256" ]
@@ -152,7 +153,7 @@ class Multicolour_Auth_JWT {
 
     // Headers for the session endpoints.
     const headers = host.request("header_validator").get()
-    delete headers.authorization;
+    delete headers.authorization
 
     server.route({
       method: "POST",
@@ -161,7 +162,7 @@ class Multicolour_Auth_JWT {
         auth: false,
         handler: (request, reply) => {
           const models = host.get("database").get("models")
-          const method = request.headers.accept;
+          const method = request.headers.accept
           const args = {
             email: request.payload.email.toString(),
             password: request.payload.email,
@@ -173,8 +174,7 @@ class Multicolour_Auth_JWT {
               get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
             }
           }
-
-          generator.trigger('auth_login', args);
+          generator.trigger("auth_login", args)
         },
         validate: {
           headers: Joi.object(headers).unknown(true),
