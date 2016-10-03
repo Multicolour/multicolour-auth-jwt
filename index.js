@@ -64,8 +64,14 @@ class Multicolour_Auth_JWT {
         }
         // We're good to create a session.
         else {
+
           // Hash the password.
           mc_utils.hash_password(password, user.salt, hashed_password => {
+// console.log(user.salt);
+// console.log(password);
+// console.log(hashed_password);
+// console.log(user.password);
+
             if (user.password !== hashed_password) {
               return callback(new Error(ERROR_INVALID_USERNAME))
             }
@@ -128,6 +134,9 @@ class Multicolour_Auth_JWT {
       const password = args.password
       const callback = args.callback ? args.callback : _ => {}
 
+console.log(args, password);
+
+
       this.auth(identifier, password, callback, identifier_field)
     })
 
@@ -165,7 +174,7 @@ class Multicolour_Auth_JWT {
           const method = request.headers.accept
           const args = {
             email: request.payload.email.toString(),
-            password: request.payload.email,
+            password: request.payload.password,
             callback: (err, session) => {
               if (err) {
                 return get_decorator_for_apply_value(reply, method)(err, models.multicolour_user).code(err.code || 500)
