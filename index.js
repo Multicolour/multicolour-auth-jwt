@@ -39,7 +39,9 @@ class Multicolour_Auth_JWT {
       })
   }
 
-  auth(identifier, password, callback, identifier_field = "email") {
+  auth(identifier, password, callback, identifier_field) {
+    identifier_field = identifier_field || "email"
+    
     const multicolour = this.request("host")
 
     //const method = request.headers.accept
@@ -56,7 +58,7 @@ class Multicolour_Auth_JWT {
       })
       .then(user => {
         if (!user) {
-          return callback(new Error(ERROR_INVALID_USERNAME, 403))
+          return callback(new Error("Invalid login", 403))
         }
         // We're good to create a session.
         else {
@@ -65,7 +67,7 @@ class Multicolour_Auth_JWT {
           mc_utils.hash_password(password, user.salt, hashed_password => {
 
             if (user.password !== hashed_password) {
-              return callback(new Error(ERROR_INVALID_PASSWORD))
+              return callback(new Error("Invalid login"))
             }
 
             // Create the token.
@@ -170,9 +172,9 @@ class Multicolour_Auth_JWT {
 
               get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
             }
-          };
+          }
 
-          generator.trigger("auth_login", args);
+          generator.trigger("auth_login", args)
         },
         validate: {
           headers: Joi.object(headers).unknown(true),
