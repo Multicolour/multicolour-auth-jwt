@@ -17,9 +17,6 @@
     "authentication"
   ],
   "author": "newworldcode <hello@newworld.codes> (https://newworld.codes)",
-  "contributors": [
-    {"name": "Adam Cowley", "url": "http://www.adamcowley.co.uk"}
-  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/newworldcode/multicolour-auth-jwt/issues"
