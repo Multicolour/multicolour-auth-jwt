@@ -21,13 +21,8 @@ function get_decorator_for_apply_value(reply_interface, accept_value) {
     reply_interface["application/json"].bind(reply_interface)
 }
 
-const ERROR_INVALID_USERNAME = "Invalid login."
-const ERROR_INVALID_PASSWORD = "Invalid login."
-
 class Multicolour_Auth_JWT {
-  validate(decoded, callback) {
-    const multicolour = this.request("host")
-
+  validate(multicolour, decoded, callback) {
     multicolour.get("database").get("models").multicolour_user
       .findOne({ id: decoded.id, email: decoded.email, username: decoded.username })
       .populateAll()
@@ -141,11 +136,8 @@ class Multicolour_Auth_JWT {
 
       server.auth.strategy("jwt", "jwt", {
         key: config.password,
-        validateFunc: (decoded, request, callback) => {
-          // TODO: Redirect when not requesting JSON
-
-          this.validate(decoded, callback)
-        },
+        validateFunc: (decoded, request, callback) =>
+          this.validate(host, decoded, callback),
         verifyOptions: {
           algorithms: config.algorithms || [ "HS256" ]
         }
@@ -164,20 +156,23 @@ class Multicolour_Auth_JWT {
       config: {
         auth: false,
         handler: (request, reply) => {
-          const models = host.get("database").get("models")
           const method = request.headers.accept
+          const models = host.get("database").get("models")
+
           const args = {
             email: request.payload.email.toString(),
             password: request.payload.password,
             callback: (err, session) => {
+              // Check for errors.
               if (err) {
                 reply(boom.wrap(err))
               }
 
               get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
             }
-          }
-          generator.trigger("auth_login", args)
+          };
+
+          generator.trigger("auth_login", args);
         },
         validate: {
           headers: Joi.object(headers).unknown(true),
@@ -192,7 +187,6 @@ class Multicolour_Auth_JWT {
       }
     })
   }
-
 }
 
 module.exports = Multicolour_Auth_JWT
