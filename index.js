@@ -39,6 +39,63 @@ class Multicolour_Auth_JWT {
       })
   }
 
+  auth(identifier, password, callback, identifier_field = "email") {
+    const multicolour = this.request("host")
+
+    //const method = request.headers.accept
+    const mc_utils = require("multicolour/lib/utils")
+    const models = multicolour.get("database").get("models")
+    const jwt = require("jsonwebtoken")
+
+    const config = multicolour.get("config").get("auth")
+
+    models
+      .multicolour_user.findOne({
+        [identifier_field]: identifier,
+        requires_password: false
+      })
+      .then(user => {
+        if (!user) {
+          return callback(new Error(ERROR_INVALID_USERNAME, 403))
+        }
+        // We're good to create a session.
+        else {
+
+          // Hash the password.
+          mc_utils.hash_password(password, user.salt, hashed_password => {
+
+            if (user.password !== hashed_password) {
+              return callback(new Error(ERROR_INVALID_PASSWORD))
+            }
+
+            // Create the token.
+            const token = jwt.sign({
+              id: user.id,
+              email: user.email,
+              username: user.username
+            }, config.password, config.jwt_options)
+
+            // Create a session document.
+            models.session.create({
+              provider: "jwt",
+              user: user.id,
+              token
+            }, (err, session) => {
+              // Check for errors.
+              if (err) {
+                callback(err)
+              }
+              else {
+                multicolour.trigger("auth_session_created", session)
+                callback(null, session)
+              }
+            })
+          })
+        }
+      })
+      .catch(callback)
+  }
+
   register(generator) {
     // Get tools.
     const joi = require("joi")
@@ -62,6 +119,15 @@ class Multicolour_Auth_JWT {
       // Add another header to validate.
       .request("header_validator")
         .set("authorization", joi.string().required())
+
+    generator.on("auth_login", args => {
+      const identifier_field = args.identifier_field || "email"
+      const identifier = args[identifier_field]
+      const password = args.password
+      const callback = args.callback ? args.callback : () => {}
+
+      this.auth(identifier, password, callback, identifier_field)
+    })
 
     server.register(require("hapi-auth-jwt2"), err => {
       if (err) {
@@ -90,58 +156,23 @@ class Multicolour_Auth_JWT {
       config: {
         auth: false,
         handler: (request, reply) => {
-          // Tools.
           const method = request.headers.accept
-          const mc_utils = require("multicolour/lib/utils")
           const models = host.get("database").get("models")
-          const jwt = require("jsonwebtoken")
 
-          models
-            .multicolour_user.findOne({
-              email: request.payload.email.toString(),
-              requires_password: false
-            })
-            .exec((err, user) => {
+          const args = {
+            email: request.payload.email.toString(),
+            password: request.payload.password,
+            callback: (err, session) => {
               // Check for errors.
               if (err) {
                 reply(boom.wrap(err))
               }
-              // Check a user for that email exists and the passwords match.
-              else if (!user) {
-                reply(boom.unauthorized("Invalid login."))
-              }
-              // We're good to create a session.
-              else {
-                // Hash the password.
-                mc_utils.hash_password(request.payload.password, user.salt, hashed_password => {
-                  if (user.password !== hashed_password) {
-                    return reply(boom.unauthorized("Invalid login."))
-                  }
 
-                  // Create the token.
-                  const token = jwt.sign({
-                    id: user.id,
-                    email: user.email,
-                    username: user.username
-                  }, config.password, config.jwt_options)
+              get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
+            }
+          };
 
-                  // Create a session document.
-                  models.session.create({
-                    provider: "jwt",
-                    user: user.id,
-                    token
-                  }, (err, session) => {
-                    // Check for errors.
-                    if (err) {
-                      reply(boom.unauthorized("Invalid login."))
-                    }
-                    else {
-                      get_decorator_for_apply_value(reply, method)(session, models.session)
-                    }
-                  })
-                })
-              }
-            })
+          generator.trigger("auth_login", args);
         },
         validate: {
           headers: Joi.object(headers).unknown(true),
