@@ -4,6 +4,8 @@
 const constraint = { user: "auth.credentials.user.id" }
 
 module.exports = {
+  identity: "session",
+  
   // Session's details.
   attributes: {
     token: {
