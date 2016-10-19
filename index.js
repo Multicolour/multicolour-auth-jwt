@@ -22,37 +22,46 @@ function get_decorator_for_apply_value(reply_interface, accept_value) {
 }
 
 class Multicolour_Auth_JWT {
-  validate(multicolour, decoded, callback) {
-    multicolour.get("database").get("models").multicolour_user
+  /**
+   * Validate values against the database and
+   * call the callback with the results.
+   *
+   * @param {Object} decoded values to validate against database.
+   * @param {Function} callback to execute with validation results.
+   */
+  validate(decoded, callback) {
+    this.multicolour.get("database").get("models").multicolour_user
       .findOne({ id: decoded.id, email: decoded.email, username: decoded.username })
       .populateAll()
       .exec((err, user) => {
-        if (err) {
-          callback(err, false)
-        }
-        else if (!user) {
+        if (err)
+          callback(err, false, {})
+        else if (!user)
           callback(null, false)
-        }
-        else {
+        else
           callback(null, true, user)
-        }
       })
   }
 
+  /**
+   * Attempt to authorise a posted payload's claim.
+   *
+   * @param {String} identifier; the username/email/whatever identifier.
+   * @param {String} password to authorise.
+   * @param {String} identifier_field; the key in the payload to validate.
+   */
   auth(identifier, password, callback, identifier_field) {
     identifier_field = identifier_field || "email"
-    
-    const multicolour = this.request("host")
 
-    //const method = request.headers.accept
+    const multicolour = this.multicolour
     const mc_utils = require("multicolour/lib/utils")
     const models = multicolour.get("database").get("models")
     const jwt = require("jsonwebtoken")
 
     const config = multicolour.get("config").get("auth")
 
-    models
-      .multicolour_user.findOne({
+    models.multicolour_user
+      .findOne({
         [identifier_field]: identifier,
         requires_password: false
       })
@@ -67,7 +76,7 @@ class Multicolour_Auth_JWT {
           mc_utils.hash_password(password, user.salt, hashed_password => {
 
             if (user.password !== hashed_password) {
-              return callback(new Error("Invalid login"))
+              return callback(boom.unauthorized())
             }
 
             // Create the token.
@@ -103,14 +112,15 @@ class Multicolour_Auth_JWT {
     const joi = require("joi")
 
     // Get the host and server.
-    const host = generator.request("host")
+    this.multicolour = generator.request("host")
     const server = generator.request("raw")
 
     // Get the config.
-    const config = host.get("config").get("auth")
+    const config = this.multicolour.get("config").get("auth")
 
     // Register the session model with the hosting Multicolour's Waterline instance.
-    host.get("database").get("definitions").session = require("./session-model")
+    this.multicolour._enable_user_model()
+    this.multicolour.get("database").register_new_model(require.resolve("./session-model"))
 
     generator
       .reply("auth_plugin", this)
@@ -139,7 +149,7 @@ class Multicolour_Auth_JWT {
       server.auth.strategy("jwt", "jwt", {
         key: config.password,
         validateFunc: (decoded, request, callback) =>
-          this.validate(host, decoded, callback),
+          this.validate(decoded, callback),
         verifyOptions: {
           algorithms: config.algorithms || [ "HS256" ]
         }
@@ -149,7 +159,7 @@ class Multicolour_Auth_JWT {
     })
 
     // Headers for the session endpoints.
-    const headers = host.request("header_validator").get()
+    const headers = this.multicolour.request("header_validator").get()
     delete headers.authorization
 
     server.route({
@@ -159,18 +169,17 @@ class Multicolour_Auth_JWT {
         auth: false,
         handler: (request, reply) => {
           const method = request.headers.accept
-          const models = host.get("database").get("models")
+          const models = this.multicolour.get("database").get("models")
 
           const args = {
             email: request.payload.email.toString(),
             password: request.payload.password,
             callback: (err, session) => {
               // Check for errors.
-              if (err) {
+              if (err)
                 reply(boom.wrap(err))
-              }
-
-              get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
+              else
+                get_decorator_for_apply_value(reply, method)(session, models.session).code(202)
             }
           }
 
