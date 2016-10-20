@@ -71,11 +71,10 @@ class Multicolour_Auth_JWT {
       })
       .then(user => {
         if (!user) {
-          return callback(new Error("Invalid login", 403))
+          return callback(boom.unauthorized())
         }
         // We're good to create a session.
         else {
-
           // Hash the password.
           mc_utils.hash_password(password, user.salt, hashed_password => {
 
