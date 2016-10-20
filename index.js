@@ -22,6 +22,10 @@ function get_decorator_for_apply_value(reply_interface, accept_value) {
 }
 
 class Multicolour_Auth_JWT {
+  constructor(host) {
+    host.request("host")._enable_user_model()
+  }
+
   /**
    * Validate values against the database and
    * call the callback with the results.
