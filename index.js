@@ -122,7 +122,6 @@ class Multicolour_Auth_JWT {
     const config = this.multicolour.get("config").get("auth")
 
     // Register the session model with the hosting Multicolour's Waterline instance.
-    this.multicolour._enable_user_model()
     this.multicolour.get("database").register_new_model(require.resolve("./session-model"))
 
     generator
@@ -151,8 +150,7 @@ class Multicolour_Auth_JWT {
 
       server.auth.strategy("jwt", "jwt", {
         key: config.password,
-        validateFunc: (decoded, request, callback) =>
-          this.validate(decoded, callback),
+        validateFunc: (decoded, request, callback) => this.validate(decoded, callback),
         verifyOptions: {
           algorithms: config.algorithms || [ "HS256" ]
         }
