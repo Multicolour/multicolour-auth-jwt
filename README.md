@@ -1,5 +1,7 @@
 # multicolour-auth-jwt
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/Multicolour/multicolour-auth-jwt.svg)](https://greenkeeper.io/)
+
 JWT Auth plugin for HapiJS & Multicolour.
 
 Get started by running `multicolour plugin-add hapi-jwt`
