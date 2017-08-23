@@ -5,7 +5,7 @@ const constraint = { user: "auth.credentials.user.id" }
 
 module.exports = {
   identity: "session",
-  
+
   // Session's details.
   attributes: {
     token: {
@@ -49,5 +49,63 @@ module.exports = {
   },
 
   NO_AUTO_GEN_ROUTES: true,
-  NO_AUTO_GEN_FRONTEND: true
+  NO_AUTO_GEN_FRONTEND: true,
+
+  associations: [{
+    alias: "user"
+  }],
+
+  custom_routes: function custom_session_routes(server, multicolour) {
+    const Joi = require("joi")
+    const boom = require("boom")
+
+    const headers = multicolour.get("server")
+      .request("header_validator")
+      .get()
+
+    headers.authorization = Joi.string().required().description("The token issued to you to get a session by.")
+
+    server.route([
+      {
+        path: "/session",
+        method: "GET",
+        config: {
+          auth: "jwt",
+          tags: ["api", "session"],
+          validate: {
+            headers: Joi.object(headers).unknown(true)
+          },
+          description: "Validate your token by attempting to retrieve it.",
+          handler: (request, reply) => {
+            this.findOne({
+              token: request.headers.authorization.replace("Bearer ", "")
+            })
+              .populateAll()
+              .then(reply)
+              .catch(error => boom.wrap(error))
+          }
+        }
+      },
+      {
+        path: "/session",
+        method: "DELETE",
+        config: {
+          auth: "jwt",
+          tags: ["api", "session"],
+          validate: {
+            headers: Joi.object(headers).unknown(true)
+          },
+          description: "Delete your token.",
+          handler: (request, reply) => {
+            this.destroy({
+              token: request.headers.authorization.replace("Bearer ", "")
+            })
+              .limit(1)
+              .then(reply)
+              .catch(error => boom.wrap(error))
+          }
+        }
+      }
+    ])
+  }
 }

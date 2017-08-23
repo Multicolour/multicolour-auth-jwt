@@ -2,7 +2,7 @@
 
 JWT Auth plugin for HapiJS & Multicolour.
 
-Get started by adding `my_service.use(require("multicolour-hapi-jwt"))` to your `app.js`.
+Get started by running `multicolour plugin-add hapi-jwt`
 
 You'll need `multicolour_user`s before you can authorise anyone to use your API.
 
