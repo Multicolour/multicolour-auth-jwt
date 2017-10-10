@@ -1,6 +1,6 @@
 {
   "name": "multicolour-hapi-jwt",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "JWT Auth plugin for HapiJS Multicolour",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/newworldcode/multicolour-auth-jwt.git"
+    "url": "git+https://github.com/newworldcode/multicolour-hapi-jwt.git"
   },
   "keywords": [
     "multicolour",
@@ -19,9 +19,9 @@
   "author": "newworldcode <hello@newworld.codes> (https://newworld.codes)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/newworldcode/multicolour-auth-jwt/issues"
+    "url": "https://github.com/newworldcode/multicolour-hapi-jwt/issues"
   },
-  "homepage": "https://github.com/newworldcode/multicolour-auth-jwt#readme",
+  "homepage": "https://github.com/newworldcode/multicolour-hapi-jwt#readme",
   "engine-strict": true,
   "engineStrict": true,
   "engines": {
