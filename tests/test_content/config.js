@@ -20,6 +20,10 @@ module.exports = {
     debug: { request: ["error"] }
   },
 
+  auth: {
+    password: "5e6r7t68yp9uhvycrd67890ijbhvgucftrd6y5789"
+  },
+
   // Set up our desired database adapter (defaults to Mongo)
   db: {
     adapters: {
