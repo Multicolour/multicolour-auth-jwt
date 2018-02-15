@@ -38,9 +38,9 @@
     "tape": "^4.8.0"
   },
   "dependencies": {
-    "boom": "^5.2.0",
+    "boom": "^6.0.0",
     "hapi-auth-jwt2": "^7.3.0",
-    "joi": "^11.0.1",
+    "joi": "^13.0.0",
     "jsonwebtoken": "^8.0.1"
   }
 }
