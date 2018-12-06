@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "tape tests/*.js | tap-spec",
-    "test-coverage": "istanbul cover tape tests/*.js --recursive --report lcov html | tap-spec"
+    "test-coverage": "istanbul cover tape tests/*.js --recursive --report lcov html | tap-spec",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "repository": {
     "type": "git",
@@ -41,6 +43,8 @@
     "boom": "^5.2.0",
     "hapi-auth-jwt2": "^7.3.0",
     "joi": "^11.0.1",
-    "jsonwebtoken": "^8.0.1"
-  }
+    "jsonwebtoken": "^8.0.1",
+    "snyk": "^1.115.0"
+  },
+  "snyk": true
 }
